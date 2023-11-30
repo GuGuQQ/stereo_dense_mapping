@@ -1,0 +1,129 @@
+void process2()
+{
+    while (true)
+    {
+        sensor_msgs::ImageConstPtr image_msg2 = NULL;
+        sensor_msgs::PointCloudConstPtr point_msg2 = NULL;
+        nav_msgs::Odometry::ConstPtr pose_msg2 = NULL;
+
+        // find out the messages with same time stamp
+        m_buf2.lock();
+        if(!image_buf2.empty() && !point_buf2.empty() && !pose_buf2.empty())
+        {
+            if (image_buf2.front()->header.stamp.toSec() > pose_buf2.front()->header.stamp.toSec())
+            {
+                pose_buf2.pop();
+                printf("throw pose at beginning\n");
+            }
+            else if (image_buf2.front()->header.stamp.toSec() > point_buf2.front()->header.stamp.toSec())
+            {
+                point_buf2.pop();
+                printf("throw point at beginning\n");
+            }
+            else if (image_buf2.back()->header.stamp.toSec() >= pose_buf2.front()->header.stamp.toSec() 
+                && point_buf2.back()->header.stamp.toSec() >= pose_buf2.front()->header.stamp.toSec())
+            {
+                pose_msg2 = pose_buf2.front();
+                pose_buf2.pop();
+                while (!pose_buf2.empty())
+                    pose_buf2.pop();
+                while (image_buf2.front()->header.stamp.toSec() < pose_msg2->header.stamp.toSec())
+                    image_buf2.pop();
+                image_msg2 = image_buf2.front();
+                image_buf2.pop();
+
+                while (point_buf2.front()->header.stamp.toSec() < pose_msg2->header.stamp.toSec())
+                    point_buf2.pop();
+                point_msg2 = point_buf2.front();
+                point_buf2.pop();
+            }
+        }
+        m_buf2.unlock();
+
+        if (pose_msg2 != NULL)
+        {
+            // skip fisrt few
+            if (skip_first_cnt2 < SKIP_FIRST_CNT)
+            {
+                skip_first_cnt2++;
+                continue;
+            }
+
+            if (skip_cnt2 < SKIP_CNT)
+            {
+                skip_cnt2++;
+                continue;
+            }
+            else
+            {
+                skip_cnt2 = 0;
+            }
+
+            cv_bridge::CvImageConstPtr ptr2;
+            if (image_msg2->encoding == "8UC1")
+            {
+                sensor_msgs::Image img2;
+                img2.header = image_msg2->header;
+                img2.height = image_msg2->height;
+                img2.width = image_msg2->width;
+                img2.is_bigendian = image_msg2->is_bigendian;
+                img2.step = image_msg2->step;
+                img2.data = image_msg2->data;
+                img2.encoding = "mono8";
+                ptr2 = cv_bridge::toCvCopy(img2, sensor_msgs::image_encodings::MONO8);
+            }
+            else
+                ptr2 = cv_bridge::toCvCopy(image_msg2, sensor_msgs::image_encodings::MONO8);
+            
+            cv::Mat image2 = ptr2->image;
+            // build keyframe
+            Vector3d T2 = Vector3d(pose_msg2->pose.pose.position.x,
+                                  pose_msg2->pose.pose.position.y,
+                                  pose_msg2->pose.pose.position.z);
+            Matrix3d R2 = Quaterniond(pose_msg2->pose.pose.orientation.w,
+                                     pose_msg2->pose.pose.orientation.x,
+                                     pose_msg2->pose.pose.orientation.y,
+                                     pose_msg2->pose.pose.orientation.z).toRotationMatrix();
+            if((T2 - last_t2).norm() > SKIP_DIS)
+            {
+                vector<cv::Point3f> point_3d2; 
+                vector<cv::Point2f> point_2d_uv2; 
+                vector<cv::Point2f> point_2d_normal2;
+                vector<double> point_id2;
+
+                for (unsigned int i = 0; i < point_msg2->points.size(); i++)
+                {
+                    cv::Point3f p_3d2;
+                    p_3d2.x = point_msg2->points[i].x;
+                    p_3d2.y = point_msg2->points[i].y;
+                    p_3d2.z = point_msg2->points[i].z;
+                    point_3d.push_back(p_3d2);
+
+                    cv::Point2f p_2d_uv2, p_2d_normal2;
+                    double p_id2;
+                    p_2d_normal2.x = point_msg2->channels[i].values[0];
+                    p_2d_normal2.y = point_msg2->channels[i].values[1];
+                    p_2d_uv2.x = point_msg2->channels[i].values[2];
+                    p_2d_uv2.y = point_msg2->channels[i].values[3];
+                    p_id2 = point_msg2->channels[i].values[4];
+                    point_2d_normal2.push_back(p_2d_normal2);
+                    point_2d_uv2.push_back(p_2d_uv2);
+                    point_id2.push_back(p_id2);
+                }
+                iris_flag=2;
+                KeyFrame* keyframe = new KeyFrame(pose_msg2->header.stamp.toSec(), frame_index, T2, R2, image2,
+                                   point_3d2, point_2d_uv2, point_2d_normal2, point_id2, sequence2, iris_flag);   
+                m_process2.lock();
+                start_flag = 1;
+                //posegraph.addKeyFrame(keyframe, 1);
+                m_process2.unlock();
+                frame_index++;
+                posegraph.addKFIntoVoc(keyframe, frame_index);
+		//cout<<GREEN<<"2号添加第"<<frame_index<<"帧关键帧至数据库"<<WHITE<<endl;
+                last_t2 = T2;
+            }
+        }
+        std::chrono::milliseconds dura(5);
+        std::this_thread::sleep_for(dura);
+    }
+}

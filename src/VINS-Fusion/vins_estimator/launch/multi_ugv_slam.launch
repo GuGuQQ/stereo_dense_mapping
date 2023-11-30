@@ -1,0 +1,17 @@
+<launch>
+    <!-- ugv_0 -->
+    <group ns="ugv_0">
+        <!-- VINS-Fusion -->
+        <node pkg="vins" type="vins_ugv" name="vins_estimator" args="$(find vins)/../config/xtdrone_sitl/ugv0_sitl_stereo_config.yaml" />
+    </group>
+
+    <group ns="ugv_1">
+        <node pkg="vins" type="vins_node" name="vins_estimator" args="$(find vins)/../config/xtdrone_sitl/ugv1_sitl_stereo_config.yaml" />
+    </group>
+
+    <group ns="ugv_2">
+        <node pkg="vins" type="vins_ugv2" name="vins_estimator" args="$(find vins)/../config/xtdrone_sitl/ugv2_sitl_stereo_config.yaml" />
+    </group>
+
+
+</launch>

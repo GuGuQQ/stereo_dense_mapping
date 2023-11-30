@@ -1,0 +1,6 @@
+<launch>
+    <group ns="ugv_1">
+        <!-- VINS-Fusion -->
+        <node pkg="vins" type="vins_node" name="vins_estimator" args="$(find vins)/../config/xtdrone_sitl/fisheye_stereo_config.yaml" />
+    </group>
+</launch>
