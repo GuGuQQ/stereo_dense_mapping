@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<launch>
+
+   <arg name="paused" default="false"/>
+   <arg name="use_sim_time" default="true"/>
+   <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="obstaclestopper" default="false"/>
+
+  <arg name="first_ugv_x_pos" default="110"/>
+  <arg name="first_ugv_y_pos" default="0"/>
+  <arg name="first_ugv_z_pos" default=" 4.76"/>
+  <arg name="first_ugv_yaw"   default=" 1.57"/>
+
+  <arg name="second_ugv_x_pos" default="-15"/>
+  <arg name="second_ugv_y_pos" default="0"/>
+  <arg name="second_ugv_z_pos" default=" 4.76"/>
+  <arg name="second_ugv_yaw"   default=" -3.14"/>
+
+  <arg name="third_ugv_x_pos" default="44.75"/>
+  <arg name="third_ugv_y_pos" default="-44.26"/>
+  <arg name="third_ugv_z_pos" default=" 4.76"/>
+  <arg name="third_ugv_yaw"   default=" 1.57"/>
+
+<param name="use_sim_time" value="true"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find mavlink_sitl_gazebo)/worlds/outdoor4.world"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
+  </include>
+
+<!--<group ns="ugv_0">
+<param name="robot_description"
+         command="$(find xacro)/xacro.py '$(find catvehicle)/urdf/catvehicle1-3.xacro' roboname:='ugv_0'" />
+<include file="$(find catvehicle)/launch/catvehicle.launch">
+    <arg name="robot_name" value="ugv_0"/>
+    <arg name="init_pose" value="-x 44.9277 -y 94.5 -z 4.76 -R 0 -P 0 -Y -1.57"/>
+    <arg name="config_file" value="catvehicle_control.yaml"/>
+    <arg name="obstaclestopper" value="$(arg obstaclestopper)"/>
+</include>
+
+</group>-->
+
+<group ns="ugv_0">
+<param name="robot_description"
+         command="$(find xacro)/xacro.py '$(find catvehicle)/urdf/catvehicle4-6.xacro' roboname:='ugv_0'" />
+<include file="$(find catvehicle)/launch/catvehicle.launch">
+    <arg name="robot_name" value="ugv_0"/>
+    <arg name="init_pose" value="-x $(arg first_ugv_x_pos) -y $(arg first_ugv_y_pos) -z $(arg first_ugv_z_pos) -R 0 -P 0 -Y $(arg first_ugv_yaw)"/>
+    <arg name="config_file" value="catvehicle_control.yaml"/>
+    <arg name="obstaclestopper" value="$(arg obstaclestopper)"/>
+</include>
+
+</group>
+
+  <node pkg="tf" name="map2ugv0odom" type="static_transform_publisher" args="0 0 0 0 0 0 map /ugv_0/odom 10"/>
+  <node pkg="tf" name="map2ugv1odom" type="static_transform_publisher" args="0 0 0 0 0 0 map /ugv_1/odom 10"/>
+  <node pkg="tf" name="map2ugv2odom" type="static_transform_publisher" args="0 0 0 0 0 0 map /ugv_2/odom 10"/>
+
+  <node pkg="tf" name="map2ugv_0_map" type="static_transform_publisher" args="$(arg first_ugv_x_pos) $(arg first_ugv_y_pos) $(arg first_ugv_z_pos) 1.57 0 0 map /ugv_0_map 10"/>
+  <node pkg="tf" name="map2ugv_1_map" type="static_transform_publisher" args="$(arg second_ugv_x_pos) $(arg second_ugv_y_pos) $(arg second_ugv_z_pos) 0 0 0 map /ugv_1_map 10"/>
+  <node pkg="tf" name="map2ugv_2_map" type="static_transform_publisher" args="$(arg third_ugv_x_pos) $(arg third_ugv_y_pos) $(arg third_ugv_z_pos) 1.57 0 0 map /ugv_2_map 10"/>
+
+<group ns="ugv_1">
+<param name="robot_description"
+         command="$(find xacro)/xacro.py '$(find catvehicle)/urdf/catvehicle4-6.xacro' roboname:='ugv_1'" />
+<include file="$(find catvehicle)/launch/catvehicle.launch">
+    <arg name="robot_name" value="ugv_1"/>
+    <arg name="init_pose" value="-x $(arg second_ugv_x_pos) -y $(arg second_ugv_y_pos) -z $(arg second_ugv_z_pos) -R 0 -P 0 -Y $(arg second_ugv_yaw)"/>
+    <arg name="config_file" value="catvehicle_control.yaml"/>
+    <arg name="obstaclestopper" value="$(arg obstaclestopper)"/>
+</include>
+</group>
+
+<group ns="ugv_2">
+<param name="robot_description"
+         command="$(find xacro)/xacro.py '$(find catvehicle)/urdf/catvehicle4-6.xacro' roboname:='ugv_2'" />
+<include file="$(find catvehicle)/launch/catvehicle.launch">
+    <arg name="robot_name" value="ugv_2"/>
+    <arg name="init_pose" value="-x $(arg third_ugv_x_pos) -y $(arg third_ugv_y_pos) -z $(arg third_ugv_z_pos) -R 0 -P 0 -Y $(arg third_ugv_yaw)"/>
+    <arg name="config_file" value="catvehicle_control.yaml"/>
+    <arg name="obstaclestopper" value="$(arg obstaclestopper)"/>
+</include>
+</group>
+
+</launch>
